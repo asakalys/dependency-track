@@ -18,6 +18,7 @@
  */
 package org.dependencytrack.parser.cyclonedx;
 
+import alpine.common.logging.Logger;
 import org.cyclonedx.Version;
 import org.cyclonedx.exception.GeneratorException;
 import org.cyclonedx.generators.BomGeneratorFactory;
