@@ -36,6 +36,9 @@ import java.util.stream.Collectors;
 
 public class CycloneDXExporter {
 
+    private static final Logger LOGGER = Logger.getLogger(CycloneDXExporter.class);
+
+
     public enum Format {
         JSON,
         XML
@@ -48,21 +51,29 @@ public class CycloneDXExporter {
         VEX
     }
 
+    private final Logger logger;
     private final QueryManager qm;
     private final CycloneDXExporter.Variant variant;
 
     public CycloneDXExporter(final CycloneDXExporter.Variant variant, final QueryManager qm) {
+        this.logger = Logger.getLogger(getClass());
         this.variant = variant;
         this.qm = qm;
     }
 
     public Bom create(final Project project) {
+
+        LOGGER.info("[CycloneDX Export] Getting all components");
         final List<Component> components = qm.getAllComponents(project);
+        LOGGER.info("[CycloneDX Export] Getting all service components");
         final List<ServiceComponent> services = qm.getAllServiceComponents(project);
+        LOGGER.info("[CycloneDX Export] Getting findings");
         final List<Finding> findings = switch (variant) {
             case INVENTORY_WITH_VULNERABILITIES, VDR, VEX -> qm.getFindings(project, true);
             default -> null;
         };
+
+        LOGGER.info("[CycloneDX Export] Passing into Create");
         return create(components, services, findings, project);
     }
 
@@ -73,13 +84,18 @@ public class CycloneDXExporter {
     }
 
     private Bom create(List<Component> components, final List<ServiceComponent> services, final List<Finding> findings, final Project project) {
+
         if (Variant.VDR == variant) {
+          LOGGER.info("[CycloneDX Export - Inner] VDR");
             components = components.stream()
                     .filter(component -> !component.getVulnerabilities().isEmpty())
                     .toList();
         }
+        LOGGER.info("[CycloneDX Export - Inner] Converting Components");
         final List<org.cyclonedx.model.Component> cycloneComponents = (Variant.VEX != variant && components != null) ? components.stream().map(component -> ModelConverter.convert(qm, component)).collect(Collectors.toList()) : null;
+        LOGGER.info("[CycloneDX Export - Inner] Converting Services");
         final List<org.cyclonedx.model.Service> cycloneServices = (Variant.VEX != variant && services != null) ? services.stream().map(service -> ModelConverter.convert(qm, service)).collect(Collectors.toList()) : null;
+        LOGGER.info("[CycloneDX Export - Inner] Setting up BOMs");
         final Bom bom = new Bom();
         bom.setSerialNumber("urn:uuid:" + UUID.randomUUID());
         bom.setVersion(1);
@@ -88,6 +104,7 @@ public class CycloneDXExporter {
         bom.setServices(cycloneServices);
         bom.setVulnerabilities(ModelConverter.generateVulnerabilities(qm, variant, findings));
         if (cycloneComponents != null) {
+            LOGGER.info("[CycloneDX Export - Inner] Generating dependencies");
             bom.setDependencies(ModelConverter.generateDependencies(project, components));
         }
         return bom;
@@ -97,8 +114,10 @@ public class CycloneDXExporter {
         // TODO: The output version should be user-controllable.
 
         if (Format.JSON == format) {
+            LOGGER.info("[CycloneDX Export - Export] Exporting JSON");
             return BomGeneratorFactory.createJson(Version.VERSION_15, bom).toJsonString();
         } else {
+            LOGGER.info("[CycloneDX Export - Export] Exporting XML");
             return BomGeneratorFactory.createXml(Version.VERSION_15, bom).toXmlString();
         }
     }
