@@ -35,10 +35,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+
 public class CycloneDXExporter {
 
     private static final Logger LOGGER = Logger.getLogger(CycloneDXExporter.class);
-
 
     public enum Format {
         JSON,
@@ -63,64 +63,90 @@ public class CycloneDXExporter {
     }
 
     public Bom create(final Project project) {
-
-        LOGGER.info("[CycloneDX Export] Getting all components");
+        LOGGER.info("[CycloneDX Export] Getting all components for project '%s' [ID: %s]".formatted(project.getName(), project.getId()));
         final List<Component> components = qm.getAllComponents(project);
-        LOGGER.info("[CycloneDX Export] Getting all service components");
-        final List<ServiceComponent> services = qm.getAllServiceComponents(project);
-        LOGGER.info("[CycloneDX Export] Getting findings");
-        final List<Finding> findings = switch (variant) {
-            case INVENTORY_WITH_VULNERABILITIES, VDR, VEX -> qm.getFindings(project, true);
-            default -> null;
-        };
 
-        LOGGER.info("[CycloneDX Export] Passing into Create");
+        LOGGER.info("[CycloneDX Export] Retrieved %d components".formatted(components.size()));
+
+        LOGGER.info("[CycloneDX Export] Getting all service components for project '%s' [ID: %s]".formatted(project.getName(), project.getId()));
+        final List<ServiceComponent> services = qm.getAllServiceComponents(project);
+
+        LOGGER.info("[CycloneDX Export] Retrieved %d service components".formatted(services.size()));
+
+        List<Finding> findings = null;
+
+        if (variant == Variant.INVENTORY_WITH_VULNERABILITIES || variant == Variant.VDR || variant == Variant.VEX) {
+            LOGGER.info("[CycloneDX Export] Getting findings for project '%s' [ID: %s]".formatted(project.getName(), project.getId()));
+            findings = qm.getFindings(project, true);
+            LOGGER.info("[CycloneDX Export] Retrieved %d findings".formatted(findings.size()));
+        }
+
+        LOGGER.info("[CycloneDX Export] Preparing to create BOM");
         return create(components, services, findings, project);
     }
 
     public Bom create(final Component component) {
+        LOGGER.info("[CycloneDX Export] Creating BOM for single component [ID: %s]".formatted(component.getId()));
         final List<Component> components = new ArrayList<>();
         components.add(component);
         return create(components, null, null, null);
     }
 
     private Bom create(List<Component> components, final List<ServiceComponent> services, final List<Finding> findings, final Project project) {
-
         if (Variant.VDR == variant) {
-          LOGGER.info("[CycloneDX Export - Inner] VDR");
+            LOGGER.info("[CycloneDX Export - Inner] Filtering components with vulnerabilities for VDR");
             components = components.stream()
                     .filter(component -> !component.getVulnerabilities().isEmpty())
                     .toList();
+            LOGGER.info("[CycloneDX Export - Inner] %d components remaining after filtering".formatted(components.size()));
         }
+
         LOGGER.info("[CycloneDX Export - Inner] Converting Components");
-        final List<org.cyclonedx.model.Component> cycloneComponents = (Variant.VEX != variant && components != null) ? components.stream().map(component -> ModelConverter.convert(qm, component)).collect(Collectors.toList()) : null;
+        final List<org.cyclonedx.model.Component> cycloneComponents =
+                (Variant.VEX != variant && components != null) ?
+                        components.stream().map(component -> ModelConverter.convert(qm, component)).collect(Collectors.toList()) : null;
+
         LOGGER.info("[CycloneDX Export - Inner] Converting Services");
-        final List<org.cyclonedx.model.Service> cycloneServices = (Variant.VEX != variant && services != null) ? services.stream().map(service -> ModelConverter.convert(qm, service)).collect(Collectors.toList()) : null;
+        final List<org.cyclonedx.model.Service> cycloneServices =
+                (Variant.VEX != variant && services != null) ?
+                        services.stream().map(service -> ModelConverter.convert(qm, service)).collect(Collectors.toList()) : null;
+
         LOGGER.info("[CycloneDX Export - Inner] Setting up BOMs");
         final Bom bom = new Bom();
         bom.setSerialNumber("urn:uuid:" + UUID.randomUUID());
         bom.setVersion(1);
-        bom.setMetadata(ModelConverter.createMetadata(project));
+
+        if (project != null) {
+            bom.setMetadata(ModelConverter.createMetadata(project));
+            LOGGER.info("[CycloneDX Export - Inner] Metadata set for project '%s'".formatted(project.getName()));
+        }
+
         bom.setComponents(cycloneComponents);
         bom.setServices(cycloneServices);
         bom.setVulnerabilities(ModelConverter.generateVulnerabilities(qm, variant, findings));
+
         if (cycloneComponents != null) {
-            LOGGER.info("[CycloneDX Export - Inner] Generating dependencies");
+            LOGGER.info("[CycloneDX Export - Inner] Generating dependencies for %d components".formatted(cycloneComponents.size()));
             bom.setDependencies(ModelConverter.generateDependencies(project, components));
         }
+
+        LOGGER.info("[CycloneDX Export - Inner] BOM creation complete");
         return bom;
     }
 
     public String export(final Bom bom, final Format format) throws GeneratorException {
-        // TODO: The output version should be user-controllable.
+        LOGGER.info("[CycloneDX Export - Export] Exporting BOM in %s format".formatted(format.name()));
+        String result = null;
 
         if (Format.JSON == format) {
             LOGGER.info("[CycloneDX Export - Export] Exporting JSON");
-            return BomGeneratorFactory.createJson(Version.VERSION_15, bom).toJsonString();
+            result = BomGeneratorFactory.createJson(Version.VERSION_15, bom).toJsonString();
         } else {
             LOGGER.info("[CycloneDX Export - Export] Exporting XML");
-            return BomGeneratorFactory.createXml(Version.VERSION_15, bom).toXmlString();
+            result = BomGeneratorFactory.createXml(Version.VERSION_15, bom).toXmlString();
         }
-    }
 
+        LOGGER.info("[CycloneDX Export - Export] Export complete");
+        return result;
+    }
 }

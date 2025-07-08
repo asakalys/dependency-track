@@ -175,6 +175,7 @@ final class ComponentQueryManager extends QueryManager implements IQueryManager 
             querySring +=
                 " && this.project.directDependencies.matches('%\"uuid\":\"'+this.uuid+'\"%') "; // only direct dependencies
         }
+        LOGGER.debug("Compiled query string: '%s'".formatted(queryString));
         final Query<?> query = pm.newQuery(Query.JDOQL, querySring);
         query.getFetchPlan().setMaxFetchDepth(2);
         if (orderBy == null) {
@@ -250,6 +251,10 @@ final class ComponentQueryManager extends QueryManager implements IQueryManager 
      * @param includeMetrics whether or not to include component metrics or not
      * @return a list of components
      */
+
+
+
+
     public PaginatedResult getComponents(ComponentIdentity identity, Project project, boolean includeMetrics) {
         if (identity == null) {
             return null;
