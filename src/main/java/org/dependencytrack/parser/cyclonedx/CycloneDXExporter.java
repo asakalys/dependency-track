@@ -102,9 +102,14 @@ public class CycloneDXExporter {
         }
 
         LOGGER.info("[CycloneDX Export - Inner] Converting Components");
-        final List<org.cyclonedx.model.Component> cycloneComponents =
-                (Variant.VEX != variant && components != null) ?
-                        components.stream().map(component -> ModelConverter.convert(qm, component)).collect(Collectors.toList()) : null;
+final List<org.cyclonedx.model.Component> cycloneComponents =
+        (Variant.VEX != variant && components != null) ?
+                components.stream().map(component -> {
+                    LOGGER.info("[CycloneDX Export - Inner] Converting component: %s".formatted(component.getName()));
+                    org.cyclonedx.model.Component cycloneComponent = ModelConverter.convert(qm, component);
+                    LOGGER.info("[CycloneDX Export - Inner] Converted component: %s".formatted(cycloneComponent.getName()));
+                    return cycloneComponent;
+                }).collect(Collectors.toList()) : null;
 
         LOGGER.info("[CycloneDX Export - Inner] Converting Services");
         final List<org.cyclonedx.model.Service> cycloneServices =
