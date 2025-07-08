@@ -559,8 +559,6 @@ public class ModelConverter {
     cycloneComponent.setSupplier(convert(component.getSupplier()));
     LOGGER.info("CPE, author, and supplier set");
 
-    cycloneComponent.setProperties(convert(component.getProperties()));
-
     LOGGER.info("Starting to set and convert properties");
 
     LOGGER.info("Retrieving properties from component");
@@ -576,8 +574,6 @@ public class ModelConverter {
     LOGGER.info("Converted properties set to cycloneComponent");
 
     LOGGER.info("Completed setting and converting properties");
-
-    
 
     LOGGER.info("Properties converted");
 
