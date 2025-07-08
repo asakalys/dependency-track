@@ -565,11 +565,11 @@ public class ModelConverter {
 
     LOGGER.info("Retrieving properties from component");
     var originalProperties = component.getProperties();
-    LOGGER.info("Successfully retrieved properties from component, size: %s".formatted(originalProperties.size());
+    LOGGER.info("Successfully retrieved properties from component, size: %s".formatted(originalProperties.size()));
 
     LOGGER.info("Starting conversion of properties");
     var convertedProperties = convert(originalProperties);
-    LOGGER.info("Properties converted, total converted properties: %s".formatted(convertedProperties.size());
+    LOGGER.info("Properties converted, total converted properties: %s".formatted(convertedProperties.size()));
 
     LOGGER.info("Setting converted properties to cycloneComponent");
     cycloneComponent.setProperties(convertedProperties);
