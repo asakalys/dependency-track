@@ -175,7 +175,7 @@ final class ComponentQueryManager extends QueryManager implements IQueryManager 
             querySring +=
                 " && this.project.directDependencies.matches('%\"uuid\":\"'+this.uuid+'\"%') "; // only direct dependencies
         }
-        LOGGER.debug("Compiled query string: '%s'".formatted(queryString));
+        LOGGER.debug("Compiled query string: '%s'".formatted(querySring));
         final Query<?> query = pm.newQuery(Query.JDOQL, querySring);
         query.getFetchPlan().setMaxFetchDepth(2);
         if (orderBy == null) {
