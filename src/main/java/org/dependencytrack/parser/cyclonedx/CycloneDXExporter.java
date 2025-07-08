@@ -36,6 +36,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 
+
 public class CycloneDXExporter {
 
     private static final Logger LOGGER = Logger.getLogger(CycloneDXExporter.class);
@@ -95,26 +96,38 @@ public class CycloneDXExporter {
     private Bom create(List<Component> components, final List<ServiceComponent> services, final List<Finding> findings, final Project project) {
         if (Variant.VDR == variant) {
             LOGGER.info("[CycloneDX Export - Inner] Filtering components with vulnerabilities for VDR");
-            components = components.stream()
-                    .filter(component -> !component.getVulnerabilities().isEmpty())
-                    .toList();
+            List<Component> filteredComponents = new ArrayList<>();
+            for (Component component : components) {
+                if (!component.getVulnerabilities().isEmpty()) {
+                    filteredComponents.add(component);
+                }
+            }
+            components = filteredComponents;
             LOGGER.info("[CycloneDX Export - Inner] %d components remaining after filtering".formatted(components.size()));
         }
 
         LOGGER.info("[CycloneDX Export - Inner] Converting Components");
-final List<org.cyclonedx.model.Component> cycloneComponents =
-        (Variant.VEX != variant && components != null) ?
-                components.stream().map(component -> {
-                    LOGGER.info("[CycloneDX Export - Inner] Converting component: %s".formatted(component.getName()));
-                    org.cyclonedx.model.Component cycloneComponent = ModelConverter.convert(qm, component);
-                    LOGGER.info("[CycloneDX Export - Inner] Converted component: %s".formatted(cycloneComponent.getName()));
-                    return cycloneComponent;
-                }).collect(Collectors.toList()) : null;
+        final List<org.cyclonedx.model.Component> cycloneComponents =
+                (Variant.VEX != variant && components != null) ? new ArrayList<>() : null;
+        
+        if (cycloneComponents != null) {
+            for (Component component : components) {
+                LOGGER.info("[CycloneDX Export - Inner] Converting component: %s".formatted(component.getName()));
+                org.cyclonedx.model.Component cycloneComponent = ModelConverter.convert(qm, component);
+                LOGGER.info("[CycloneDX Export - Inner] Converted component: %s".formatted(cycloneComponent.getName()));
+                cycloneComponents.add(cycloneComponent);
+            }
+        } 
 
         LOGGER.info("[CycloneDX Export - Inner] Converting Services");
         final List<org.cyclonedx.model.Service> cycloneServices =
-                (Variant.VEX != variant && services != null) ?
-                        services.stream().map(service -> ModelConverter.convert(qm, service)).collect(Collectors.toList()) : null;
+                (Variant.VEX != variant && services != null) ? new ArrayList<>() : null;
+
+        if (cycloneServices != null) {
+            for (ServiceComponent service : services) {
+                cycloneServices.add(ModelConverter.convert(qm, service));
+            }
+        }
 
         LOGGER.info("[CycloneDX Export - Inner] Setting up BOMs");
         final Bom bom = new Bom();
