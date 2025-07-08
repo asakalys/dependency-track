@@ -538,6 +538,7 @@ public class ModelConverter {
 
 
     public static org.cyclonedx.model.Component convert(final QueryManager qm, final Component component) {
+    LOGGER.info("==============================================================================");
     LOGGER.info("Starting conversion for component: %s".formatted(component.getName()));
     
     final org.cyclonedx.model.Component cycloneComponent = new org.cyclonedx.model.Component();
@@ -559,7 +560,28 @@ public class ModelConverter {
     LOGGER.info("CPE, author, and supplier set");
 
     cycloneComponent.setProperties(convert(component.getProperties()));
+
+    LOGGER.info("Starting to set and convert properties");
+
+    LOGGER.info("Retrieving properties from component");
+    var originalProperties = component.getProperties();
+    LOGGER.info("Successfully retrieved properties from component, size: {}", originalProperties.size());
+
+    LOGGER.info("Starting conversion of properties");
+    var convertedProperties = convert(originalProperties);
+    LOGGER.info("Properties converted, total converted properties: {}", convertedProperties.size());
+
+    LOGGER.info("Setting converted properties to cycloneComponent");
+    cycloneComponent.setProperties(convertedProperties);
+    LOGGER.info("Converted properties set to cycloneComponent");
+
+    LOGGER.info("Completed setting and converting properties");
+
+    
+
     LOGGER.info("Properties converted");
+
+    LOGGER.info("==============================================================================");
 
     if (component.getSwidTagId() != null) {
         final Swid swid = new Swid();
@@ -659,32 +681,46 @@ public class ModelConverter {
     return cycloneComponent;
 }
 
-    private static <T extends IConfigProperty> List<org.cyclonedx.model.Property> convert(final Collection<T> dtProperties) {
-        if (dtProperties == null || dtProperties.isEmpty()) {
-            return Collections.emptyList();
-        }
+private static <T extends IConfigProperty> List<org.cyclonedx.model.Property> convert(final Collection<T> dtProperties) {
+    LOGGER.info("================================ (CONVERT START) =================================");
 
-        final List<org.cyclonedx.model.Property> cdxProperties = new ArrayList<>();
-        for (final T dtProperty : dtProperties) {
-            if (dtProperty.getPropertyType() == PropertyType.ENCRYPTEDSTRING) {
-                // We treat encrypted properties as internal.
-                // They shall not be leaked when exporting.
-                continue;
-            }
-
-            final var cdxProperty = new org.cyclonedx.model.Property();
-            if (dtProperty.getGroupName() == null) {
-                cdxProperty.setName(dtProperty.getPropertyName());
-            } else {
-                cdxProperty.setName("%s:%s".formatted(dtProperty.getGroupName(), dtProperty.getPropertyName()));
-            }
-            cdxProperty.setValue(dtProperty.getPropertyValue());
-            cdxProperties.add(cdxProperty);
-        }
-
-        return cdxProperties;
+    if (dtProperties == null || dtProperties.isEmpty()) {
+        LOGGER.info("Received null or empty properties collection.");
+        LOGGER.info("================================ (CONVERT END) ===================================");
+        return Collections.emptyList();
     }
 
+    LOGGER.info("Converting properties, number of items to process: {}", dtProperties.size());
+
+    final var cdxProperties = new ArrayList<org.cyclonedx.model.Property>();
+    
+    for (final var dtProperty : dtProperties) {
+        if (dtProperty.getPropertyType() == PropertyType.ENCRYPTEDSTRING) {
+            LOGGER.info("Skipping encrypted property: {}", dtProperty.getPropertyName());
+            continue;
+        }
+
+        final var cdxProperty = new org.cyclonedx.model.Property();
+        if (dtProperty.getGroupName() == null) {
+            cdxProperty.setName(dtProperty.getPropertyName());
+        } else {
+            cdxProperty.setName("%s:%s".formatted(dtProperty.getGroupName(), dtProperty.getPropertyName()));
+        }
+
+        // Log before setting the value
+        LOGGER.info("Setting value for property: {} to {}", cdxProperty.getName(), dtProperty.getPropertyValue());
+        cdxProperty.setValue(dtProperty.getPropertyValue());
+
+        cdxProperties.add(cdxProperty);
+    }
+
+    LOGGER.info("Completed conversion. Total converted properties: {}", cdxProperties.size());
+    LOGGER.info("================================ (CONVERT END) ===================================");
+
+    return cdxProperties;
+}
+
+   
     public static String convertContactsToString(List<OrganizationalContact> authors) {
         if (authors == null || authors.isEmpty()) {
             return "";
