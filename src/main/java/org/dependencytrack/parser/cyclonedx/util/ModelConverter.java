@@ -690,13 +690,13 @@ private static <T extends IConfigProperty> List<org.cyclonedx.model.Property> co
         return Collections.emptyList();
     }
 
-    LOGGER.info("Converting properties, number of items to process: {}", dtProperties.size());
+    LOGGER.info("Converting properties, number of items to process: %d".formatted(dtProperties.size()));
 
     final var cdxProperties = new ArrayList<org.cyclonedx.model.Property>();
     
     for (final var dtProperty : dtProperties) {
         if (dtProperty.getPropertyType() == PropertyType.ENCRYPTEDSTRING) {
-            LOGGER.info("Skipping encrypted property: {}", dtProperty.getPropertyName());
+            LOGGER.info("Skipping encrypted property: %s".formatted(dtProperty.getPropertyName()));
             continue;
         }
 
@@ -708,13 +708,13 @@ private static <T extends IConfigProperty> List<org.cyclonedx.model.Property> co
         }
 
         // Log before setting the value
-        LOGGER.info("Setting value for property: {} to {}", cdxProperty.getName(), dtProperty.getPropertyValue());
+        LOGGER.info("Setting value for property: %s to %s".formatted(cdxProperty.getName(), dtProperty.getPropertyValue()));
         cdxProperty.setValue(dtProperty.getPropertyValue());
 
         cdxProperties.add(cdxProperty);
     }
 
-    LOGGER.info("Completed conversion. Total converted properties: {}", cdxProperties.size());
+    LOGGER.info("Completed conversion. Total converted properties: %d".formatted(cdxProperties.size()));
     LOGGER.info("================================ (CONVERT END) ===================================");
 
     return cdxProperties;
