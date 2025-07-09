@@ -380,7 +380,7 @@ public class Component implements Serializable {
     @Order(extensions = @Extension(vendorName = "datanucleus", key = "list-ordering", value = "id ASC"))
     private Collection<Component> children;
 
-    @Persistent(mappedBy = "component", defaultFetchGroup = "false")
+    @Persistent(mappedBy = "component", defaultFetchGroup = "true")
     @Order(extensions = @Extension(vendorName = "datanucleus", key = "list-ordering", value = "groupName ASC, propertyName ASC, id ASC"))
     private List<ComponentProperty> properties;
 
